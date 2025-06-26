@@ -372,6 +372,31 @@ class LMStudioModel(LMStudioBaseModel):
                 print(f"LMSTUDIO DEBUG: Model {self.model_id} does not support images, but attachment {attachment.path or attachment.url or 'content'} was provided. Ignoring.", file=sys.stderr)
         return encoded_attachments
 
+    def _build_tools(self, prompt: llm.Prompt) -> List[dict]:
+        """Convert llm.Tool objects to OpenAI-compatible tool format for LM Studio API."""
+        if not prompt.tools:
+            return []
+        
+        tools = []
+        for tool in prompt.tools:
+            tool_def = {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "parameters": tool.input_schema  # llm.Tool.input_schema is already a dict
+                }
+            }
+            # Add description if available
+            if tool.description:
+                tool_def["function"]["description"] = tool.description
+            
+            tools.append(tool_def)
+            
+            if os.getenv("LLM_LMSTUDIO_DEBUG") == "1":
+                print(f"LMSTUDIO DEBUG: Added tool: {tool.name}", file=sys.stderr)
+        
+        return tools
+
     def _build_messages(self, prompt: llm.Prompt, conversation) -> List[dict]:
         msgs: List[dict] = []
         if prompt.system:
@@ -495,6 +520,16 @@ class LMStudioModel(LMStudioBaseModel):
             # Convert the Options object to a dictionary
             options_dict = prompt.options.model_dump(exclude_none=True)
             payload.update(options_dict)
+
+        # Handle tools from llm
+        if prompt.tools:
+            tools = self._build_tools(prompt)
+            if tools:
+                payload["tools"] = tools
+                # Set tool_choice to "auto" to let the model decide when to use tools
+                payload["tool_choice"] = "auto"
+                if os.getenv("LLM_LMSTUDIO_DEBUG") == "1":
+                    print(f"LMSTUDIO DEBUG: Added {len(tools)} tools to payload", file=sys.stderr)
 
         # Handle --schema flag from llm
         if hasattr(prompt, 'schema') and prompt.schema:
@@ -736,6 +771,31 @@ class LMStudioAsyncModel(llm.AsyncModel):
                  print(f"LMSTUDIO DEBUG: Model {self.model_id} does not support images, but attachment (async) {attachment.path or attachment.url or 'content'} was provided. Ignoring.", file=sys.stderr)
         return encoded_attachments
 
+    def _build_tools(self, prompt: llm.Prompt) -> List[dict]:
+        """Convert llm.Tool objects to OpenAI-compatible tool format for LM Studio API."""
+        if not prompt.tools:
+            return []
+        
+        tools = []
+        for tool in prompt.tools:
+            tool_def = {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "parameters": tool.input_schema  # llm.Tool.input_schema is already a dict
+                }
+            }
+            # Add description if available
+            if tool.description:
+                tool_def["function"]["description"] = tool.description
+            
+            tools.append(tool_def)
+            
+            if os.getenv("LLM_LMSTUDIO_DEBUG") == "1":
+                print(f"LMSTUDIO DEBUG: Added tool (async): {tool.name}", file=sys.stderr)
+        
+        return tools
+
     def _build_messages(self, prompt: llm.Prompt, conversation) -> List[dict]:
         # For async, we will call the synchronous _build_messages for now.
         # This is because _encode_attachments within it is synchronous due to llm.Attachment API.
@@ -783,6 +843,16 @@ class LMStudioAsyncModel(llm.AsyncModel):
             # Convert the Options object to a dictionary
             options_dict = prompt.options.model_dump(exclude_none=True)
             payload.update(options_dict)
+
+        # Handle tools from llm
+        if prompt.tools:
+            tools = self._build_tools(prompt)
+            if tools:
+                payload["tools"] = tools
+                # Set tool_choice to "auto" to let the model decide when to use tools
+                payload["tool_choice"] = "auto"
+                if os.getenv("LLM_LMSTUDIO_DEBUG") == "1":
+                    print(f"LMSTUDIO DEBUG: Added {len(tools)} tools to payload (async)", file=sys.stderr)
 
         # Handle --schema flag from llm
         if hasattr(prompt, 'schema') and prompt.schema:

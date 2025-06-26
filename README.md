@@ -63,6 +63,45 @@ The plugin supports vision-language models (VLMs).
 - This feature's success depends on the specific VLM, its configuration in LM Studio, and LM Studio's API correctly handling image data.
 - Models that support vision may have a `👁️` (eye icon) in their `display_suffix` when inspected via `llm inspect -m lmstudio/your-vlm-id`, though this may not always render in `llm models list`.
 
+### Tool Support
+
+The plugin supports tools (function calling) for models that are compatible with the OpenAI-style tools API in LM Studio.
+
+- Tools are automatically detected and the `⚒` (hammer and pick) symbol is shown for tool-capable models.
+- You can use tools by defining them in Python and passing them to the model:
+
+```python
+import llm
+
+# Define a tool
+weather_tool = llm.Tool(
+    name="get_weather",
+    description="Get current weather for a location",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "location": {
+                "type": "string",
+                "description": "The city and state, e.g. San Francisco, CA"
+            },
+            "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "Temperature unit"
+            }
+        },
+        "required": ["location"]
+    }
+)
+
+# Use the tool with a model
+model = llm.get_model("lmstudio/your-model-id")
+response = model.prompt("What's the weather in Paris?", tools=[weather_tool])
+```
+
+- When the model wants to call a tool, it will return the tool call information which can be processed by your application.
+- Tool support depends on the specific model's capabilities and LM Studio's implementation of the tools API.
+
 ### Embedding Models
 
 If you have embedding models loaded in LMStudio (their names usually contain "embed"), the plugin will register them too. You can list them with:
