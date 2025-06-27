@@ -645,7 +645,22 @@ class LMStudioModel(LMStudioBaseModel):
             if finish_reason == "tool_calls":
                  # Finalize accumulated tool calls (copying to avoid issues if stream is re-read)
                  accumulated_tool_calls = [tc.copy() for tc in current_tool_calls]
-                 response.tool_calls(accumulated_tool_calls)
+                 for tool_call_data in accumulated_tool_calls:
+                     # Parse the tool call arguments
+                     arguments = {}
+                     try:
+                         arguments = json.loads(tool_call_data["function"]["arguments"])
+                     except json.JSONDecodeError:
+                         # If arguments aren't valid JSON, pass as-is
+                         arguments = {"raw_arguments": tool_call_data["function"]["arguments"]}
+                     
+                     # Create and add the tool call
+                     tool_call = llm.models.ToolCall(
+                         name=tool_call_data["function"]["name"],
+                         arguments=arguments,
+                         tool_call_id=tool_call_data.get("id")
+                     )
+                     response.add_tool_call(tool_call)
 
         else: # Non-streaming
             # print("LMSTUDIO DEBUG: Entered non-streaming response handling.", file=sys.stderr) # DEBUG
@@ -677,7 +692,22 @@ class LMStudioModel(LMStudioBaseModel):
                 # print("LMSTUDIO DEBUG: Handling tool calls (unexpected for schema).", file=sys.stderr) # DEBUG
                 tool_calls_data = choice.get("message", {}).get("tool_calls")
                 if tool_calls_data:
-                    response.tool_calls(tool_calls_data)
+                    for tool_call_data in tool_calls_data:
+                        # Parse the tool call arguments
+                        arguments = {}
+                        try:
+                            arguments = json.loads(tool_call_data["function"]["arguments"])
+                        except json.JSONDecodeError:
+                            # If arguments aren't valid JSON, pass as-is
+                            arguments = {"raw_arguments": tool_call_data["function"]["arguments"]}
+                        
+                        # Create and add the tool call
+                        tool_call = llm.models.ToolCall(
+                            name=tool_call_data["function"]["name"],
+                            arguments=arguments,
+                            tool_call_id=tool_call_data.get("id")
+                        )
+                        response.add_tool_call(tool_call)
 
             # Record usage
             usage = res.get("usage", {})
@@ -929,7 +959,22 @@ class LMStudioAsyncModel(llm.AsyncModel):
                         # After stream finishes, process tool calls
                         if finish_reason == "tool_calls":
                              accumulated_tool_calls = [tc.copy() for tc in current_tool_calls]
-                             response.tool_calls(accumulated_tool_calls)
+                             for tool_call_data in accumulated_tool_calls:
+                                 # Parse the tool call arguments
+                                 arguments = {}
+                                 try:
+                                     arguments = json.loads(tool_call_data["function"]["arguments"])
+                                 except json.JSONDecodeError:
+                                     # If arguments aren't valid JSON, pass as-is
+                                     arguments = {"raw_arguments": tool_call_data["function"]["arguments"]}
+                                 
+                                 # Create and add the tool call
+                                 tool_call = llm.models.ToolCall(
+                                     name=tool_call_data["function"]["name"],
+                                     arguments=arguments,
+                                     tool_call_id=tool_call_data.get("id")
+                                 )
+                                 response.add_tool_call(tool_call)
                         
                         # Potential place to check for usage in final stream chunk if API supports it
 
@@ -957,7 +1002,22 @@ class LMStudioAsyncModel(llm.AsyncModel):
                     if finish_reason == "tool_calls":
                         tool_calls_data = choice.get("message", {}).get("tool_calls")
                         if tool_calls_data:
-                            response.tool_calls(tool_calls_data)
+                            for tool_call_data in tool_calls_data:
+                                # Parse the tool call arguments
+                                arguments = {}
+                                try:
+                                    arguments = json.loads(tool_call_data["function"]["arguments"])
+                                except json.JSONDecodeError:
+                                    # If arguments aren't valid JSON, pass as-is
+                                    arguments = {"raw_arguments": tool_call_data["function"]["arguments"]}
+                                
+                                # Create and add the tool call
+                                tool_call = llm.models.ToolCall(
+                                    name=tool_call_data["function"]["name"],
+                                    arguments=arguments,
+                                    tool_call_id=tool_call_data.get("id")
+                                )
+                                response.add_tool_call(tool_call)
 
                     usage = res.get("usage", {})
                     if usage:
