@@ -179,6 +179,7 @@ def register_embedding_models(register):
 class LMStudioBaseModel(llm.Model):
     """Base class for common LMStudio model attributes."""
     can_stream: bool = True
+    supports_tools: bool = True
     attachment_types = { # Task 1.1
         "image/png",
         "image/jpeg",
@@ -702,6 +703,7 @@ class LMStudioModel(LMStudioBaseModel):
 class LMStudioAsyncModel(llm.AsyncModel):
     """Async version of the chat/completion model class."""
     can_stream: bool = True
+    supports_tools: bool = True
     attachment_types = { # Task 1.1
         "image/png",
         "image/jpeg",
